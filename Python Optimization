@@ -1,0 +1,68 @@
+import numpy
+
+hugeNumber = float("inf")
+unused     = -1e10
+
+stages            = 12
+inventoryCapacity = 25
+maxBuy            = 10
+maxSell           = 15
+
+startingInventory  = 3
+
+holdingCost     =   11.00
+transactionCost =  120.00
+
+price = numpy.array([unused, 108, 78, 60, 56, 97, 130, 141, 100, 70, 59, 90, 133])
+
+f = numpy.zeros([stages + 2, inventoryCapacity + 1])
+x = numpy.zeros([stages + 1, inventoryCapacity + 1], dtype = int)
+
+# If not zero, set each f[stages+1,i] to the terminal value of being in state i at the end
+# For states that are not allowed, use hugenumber for minimization, -hugenumber for maximization
+
+for t in range(stages, 0, -1):
+
+    # If necessary, determine which states are possible at stage t
+    # (This is usually not necessary in the examples in this class)
+
+    for i in range(inventoryCapacity + 1):
+
+        # Determine set of decisions d which are possible from this state and stage
+        msell = -min(i, maxSell)
+        mbuy =  min(inventoryCapacity - i, maxBuy)
+
+        value =  -hugeNumber
+
+        for d in range(msell, mbuy + 1):
+            j = i + d
+            if d < 0:  # Selling
+                immediateGain = -d * price[t] - transactionCost
+                moveValue = immediateGain + f[t + 1, j] - holdingCost * j
+            elif d > 0:  # Buying
+                immediateCost = d * price[t] + transactionCost
+                if i + d <= inventoryCapacity:
+                    moveValue = -immediateCost + f[t + 1, j] - holdingCost * j
+            else:  # Holding
+                moveValue = f[t + 1, j] - holdingCost * j
+            if moveValue > value:   # use < instead of > if minimizing
+                value = moveValue
+                bestMove = d
+        # End of d loop
+
+        f[t, i] = value
+        x[t, i] = bestMove
+
+    # End of i loop
+
+
+# Print the optimal strategy
+print("Optimal profit is " + str(f[1, startingInventory]))
+solutionString = "Trade amounts:"
+i = startingInventory
+for t in range(1, stages + 1):
+  solutionString += " " + str(x[t, i])
+  i = i + x[t, i]
+print(solutionString)
+
+print("Ending inventory at month 12 is", i)
